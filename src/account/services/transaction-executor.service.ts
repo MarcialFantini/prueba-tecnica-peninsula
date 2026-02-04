@@ -81,65 +81,57 @@ export class TransactionExecutor {
     attemptNumber: number,
   ): Promise<UpdateBalanceResponseDto> {
     return this.dataSource.transaction(async (manager) => {
-      // PASO 1: Verificar idempotencia dentro de la transacción
+      // 1. Verificar idempotencia
       const existingTx = await manager.findOne(Transaction, {
         where: { idempotencyKey },
       });
 
       if (existingTx) {
-        this.logger.log(
-          `Idempotent request detected within transaction: ${idempotencyKey}`,
-        );
         return this.buildResponseFromTransaction(existingTx, attemptNumber);
       }
 
-      // PASO 2: Leer cuenta SIN LOCKS (optimistic locking)
+      // 2. Obtener versión y balance actual (sin locks)
       const account = await manager.findOne(Account, {
         where: { accountId },
+        select: ['version', 'balance'],
       });
 
       if (!account) {
         throw new AccountNotFoundException(accountId);
       }
 
-      // PASO 3: Calcular nuevo balance y validar reglas de negocio
-      const balanceBefore = Number(account.balance);
-      const newBalance = balanceBefore + amount;
-
-      if (newBalance < 0) {
-        throw new InsufficientFundsException(
-          `Insufficient funds. Current: ${balanceBefore}, Required: ${Math.abs(amount)}`,
-        );
-      }
-
-      // PASO 4: Actualizar balance con optimistic locking
       const currentVersion = account.version;
+      const balanceBefore = Number(account.balance);
+
+      // 3. Ejecutar UPDATE Atómico + Bloqueo Optimista
       const updateResult = await manager
         .createQueryBuilder()
         .update(Account)
         .set({
-          balance: newBalance,
+          balance: () => `balance + ${amount}`,
           version: () => 'version + 1',
+          updatedAt: new Date(),
         })
         .where('account_id = :accountId', { accountId })
         .andWhere('version = :currentVersion', { currentVersion })
+        .andWhere('balance + :amount >= 0', { amount })
         .execute();
 
-      // PASO 5: Detectar conflicto de versión
+      // 4. Si falló, lanzar error para reintentar o abortar
       if (updateResult.affected === 0) {
-        this.logger.warn(
-          `Optimistic lock conflict for account ${accountId} at version ${currentVersion}`,
-        );
+        if (balanceBefore + amount < 0) {
+          throw new InsufficientFundsException('Insufficient funds');
+        }
         throw new Error('Version conflict - retry required');
       }
 
-      // PASO 6: Crear registro de transacción
+      // 5. Registrar transacción
       const transaction = manager.create(Transaction, {
         accountId,
         amount,
         type,
         balanceBefore,
-        balanceAfter: newBalance,
+        balanceAfter: balanceBefore + amount,
         version: currentVersion + 1,
         idempotencyKey,
       });
