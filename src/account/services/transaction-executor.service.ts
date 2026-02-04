@@ -81,64 +81,78 @@ export class TransactionExecutor {
     attemptNumber: number,
   ): Promise<UpdateBalanceResponseDto> {
     return this.dataSource.transaction(async (manager) => {
-      // 1. Verificar idempotencia
+      // 1. Verificar idempotencia (indispensable antes de la query compleja)
       const existingTx = await manager.findOne(Transaction, {
         where: { idempotencyKey },
       });
-
-      if (existingTx) {
+      if (existingTx)
         return this.buildResponseFromTransaction(existingTx, attemptNumber);
-      }
 
-      // 2. Obtener versión y balance actual (sin locks)
-      const account = await manager.findOne(Account, {
+      // 2. Obtener versión actual (necesaria para el WHERE del Optimistic Lock)
+      const currentAccount = await manager.findOne(Account, {
         where: { accountId },
         select: ['version', 'balance'],
       });
+      if (!currentAccount) throw new AccountNotFoundException(accountId);
 
-      if (!account) {
-        throw new AccountNotFoundException(accountId);
-      }
+      const currentVersion = currentAccount.version;
+      const balanceBefore = Number(currentAccount.balance);
 
-      const currentVersion = account.version;
-      const balanceBefore = Number(account.balance);
+      // 3. LA QUERY MÁGICA: CTE Atómico
+      // Esta query hace TODO en un solo round-trip:
+      // - Valida saldo
+      // - Valida versión (Optimistic Lock)
+      // - Actualiza cuenta
+      // - Inserta registro de transacción
+      const sql = `
+        WITH updated_account AS (
+          UPDATE accounts
+          SET 
+            balance = balance + $1,
+            version = version + 1,
+            updated_at = NOW()
+          WHERE 
+            account_id = $2 
+            AND version = $3 
+            AND (balance + $1) >= 0
+          RETURNING balance, version
+        )
+        INSERT INTO transactions (
+          account_id, amount, type, balance_before, balance_after, version, idempotency_key, created_at
+        )
+        SELECT 
+          $2, $1, $4, $5, balance, version, $6, NOW()
+        FROM updated_account
+        RETURNING id, balance_after, version;
+      `;
 
-      // 3. Ejecutar UPDATE Atómico + Bloqueo Optimista
-      const updateResult = await manager
-        .createQueryBuilder()
-        .update(Account)
-        .set({
-          balance: () => `balance + ${amount}`,
-          version: () => 'version + 1',
-          updatedAt: new Date(),
-        })
-        .where('account_id = :accountId', { accountId })
-        .andWhere('version = :currentVersion', { currentVersion })
-        .andWhere('balance + :amount >= 0', { amount })
-        .execute();
+      const result = await manager.query(sql, [
+        amount,
+        accountId,
+        currentVersion,
+        type,
+        balanceBefore,
+        idempotencyKey,
+      ]);
 
-      // 4. Si falló, lanzar error para reintentar o abortar
-      if (updateResult.affected === 0) {
+      // 4. Analizar resultado
+      if (result.length === 0) {
+        // Si falló, investigamos por qué
         if (balanceBefore + amount < 0) {
           throw new InsufficientFundsException('Insufficient funds');
         }
+        // Si había saldo, fue un conflicto de versión
         throw new Error('Version conflict - retry required');
       }
 
-      // 5. Registrar transacción
-      const transaction = manager.create(Transaction, {
-        accountId,
-        amount,
-        type,
-        balanceBefore,
-        balanceAfter: balanceBefore + amount,
-        version: currentVersion + 1,
-        idempotencyKey,
-      });
-
-      const savedTx = await manager.save(Transaction, transaction);
-
-      return this.buildResponseFromTransaction(savedTx, attemptNumber);
+      // 5. Construir respuesta exitosa
+      return {
+        success: true,
+        transactionId: result[0].id,
+        balanceAfter: Number(result[0].balance_after),
+        version: result[0].version,
+        wasRetried: attemptNumber > 0,
+      };
     });
   }
 
