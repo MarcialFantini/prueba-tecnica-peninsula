@@ -7,7 +7,7 @@ import {
   Transaction,
   TransactionType,
 } from 'src/account/entities/transaction.entity';
-import { AccountNotFoundException } from 'src/account/exeptions/account-not-found.exception';
+import { AccountNotFoundException } from 'src/account/exceptions/account-not-found.exception';
 import { TransactionExecutor } from 'src/account/services/transaction-executor.service';
 import { RetryStrategy } from 'src/account/services/retry-strategy.service';
 import { DataSource } from 'typeorm';

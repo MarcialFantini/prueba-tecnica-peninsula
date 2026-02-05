@@ -7,9 +7,9 @@ import { Account } from './entities/account.entity';
 import { Transaction } from './entities/transaction.entity';
 import { UpdateBalanceDto } from './dto/update-balance.dto';
 import { UpdateBalanceResponseDto } from './dto/update-balance-response.dto';
-import { AccountNotFoundException } from './exeptions/account-not-found.exception';
+import { AccountNotFoundException } from './exceptions/account-not-found.exception';
 import { TransactionExecutor } from './services/transaction-executor.service';
-
+import { v4 as uuidv4 } from 'uuid';
 /**
  * Service for managing bank accounts.
  */
@@ -29,15 +29,17 @@ export class AccountsService {
    * Crea una nueva cuenta bancaria.
    */
   async createAccount(
-    accountId: string,
+    accountId?: string,
     initialBalance: number = 0,
   ): Promise<Account> {
+    const newAccountId = accountId ?? uuidv4();
+
     this.logger.log(
-      `Creating account ${accountId} with balance ${initialBalance}`,
+      `Creating account ${newAccountId} with balance ${initialBalance}`,
     );
 
     const account = this.accountRepository.create({
-      accountId,
+      accountId: newAccountId,
       balance: initialBalance,
     });
 

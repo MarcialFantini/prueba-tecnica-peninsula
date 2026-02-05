@@ -2,6 +2,28 @@
 
 Este documento detalla el razonamiento técnico, las decisiones de arquitectura y las instrucciones para ejecutar y probar la solución entregada para la prueba técnica.
 
+## 📋 Índice
+
+- [1. Razonamiento Técnico y Decisiones de Diseño](#1-razonamiento-técnico-y-decisiones-de-diseño)
+  - [1.1. Enfoque de Concurrencia: Optimistic Locking](#11-enfoque-de-concurrencia-optimistic-locking)
+  - [1.2. Lenguaje y Framework: TypeScript & NestJS](#12-lenguaje-y-framework-typescript--nestjs)
+- [2. Arquitectura de Servicios y Flujo de Datos](#2-arquitectura-de-servicios-y-flujo-de-datos)
+  - [2.1. AccountService (Fachada)](#21-accountservice-fachada)
+  - [2.2. TransactionExecutorService (Core Lógico)](#22-transactionexecutorservice-core-lógico)
+  - [2.3. RetryStrategyService (Manejo de Resiliencia)](#23-retrystrategyservice-manejo-de-resiliencia)
+- [3. Diseño de Base de Datos](#3-diseño-de-base-de-datos)
+  - [3.1. Entidades Principales](#31-entidades-principales)
+- [4. Manejo de Errores](#4-manejo-de-errores)
+- [5. Validación y Cobertura de Tests](#5-validación-y-concurrencia-y-estrés)
+  - [5.1. Pruebas de Concurrencia y Estrés](#51-pruebas-de-concurrencia-y-estrés)
+  - [5.2. Pruebas Funcionales y Unitarias](#52-pruebas-funcionales-y-unitarias)
+- [6. Instrucciones de Ejecución y Entorno](#6-instrucciones-de-ejecución-y-entorno)
+  - [6.1. Requisitos del Sistema](#61-requisitos-del-sistema)
+  - [6.2. Variables de Entorno](#62-variables-de-entorno)
+  - [6.3. Comandos de Gestión (Docker + App)](#63-comandos-de-gestión-docker--app)
+- [7. Documentación de API (Swagger) 🌊](#7-documentación-de-api-swagger-)
+- [8. Referencia Rápida de API](#8-referencia-rápida-de-api)
+
 ---
 
 ## 1. Razonamiento Técnico y Decisiones de Diseño
@@ -161,13 +183,27 @@ pnpm db:reset # Pelirogre: Borra y reinicia datos de desarrollo
 
 ---
 
-## 7. Referencia Rápida de API
+## 7. Documentación de API (Swagger) 🌊
 
-La aplicación expone endpoints REST para la gestión de cuentas.
+El proyecto cuenta con documentación interactiva generada con Swagger. Esta es la forma recomendada de probar los endpoints de manera visual.
+
+*   **URL**: `http://localhost:3000/api` (con la aplicación corriendo).
+*   **Características**:
+    *   **Guía Rápida**: Incluye instrucciones de uso directamente en la interfaz.
+    *   **Pruebas en Vivo**: Botón "Try it out" para ejecutar peticiones reales.
+    *   **Esquemas (DTOs)**: Visualización automática de los modelos de datos y validaciones.
+    *   **CORS**: Habilitado para permitir pruebas desde el navegador.
+
+---
+
+## 8. Referencia Rápida de API
+
+La aplicación expone endpoints REST para la gestión de cuentas. Para ver el detalle técnico completo (ejemplos, modelos de datos, códigos de error), consulte la [Documentación Swagger](#7-documentación-de-api-swagger).
 
 | Método | Endpoint | Descripción | Body (JSON) |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/accounts` | Crea una nueva cuenta. | `{ "balance": 100 }` |
-| `GET` | `/accounts/:id` | Consulta saldo y detalles. | - |
-| `PATCH` | `/accounts/:id/transaction` | Ejecuta un depósito o retiro. | `{ "type": "withdraw", "amount": 50 }` |
+| `POST` | `/accounts` | Crea una nueva cuenta (UUID auto-generado). | `{ "initialBalance": 1000 }` |
+| `GET` | `/accounts` | Lista todas las cuentas. | - |
+| `GET` | `/accounts/:id/balance` | Consulta saldo actual. | - |
+| `POST` | `/accounts/:id/balance` | Ejecuta un depósito o retiro. | `{ "type": "deposit", "amount": 150 }` |
 | `GET` | `/accounts/:id/transactions` | Historial de movimientos. | - |

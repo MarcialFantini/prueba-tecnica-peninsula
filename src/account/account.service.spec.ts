@@ -6,7 +6,7 @@ import { Account } from './entities/account.entity';
 import { Transaction } from './entities/transaction.entity';
 import { TransactionExecutor } from './services/transaction-executor.service';
 import { TransactionType } from './entities/transaction.entity';
-import { AccountNotFoundException } from './exeptions/account-not-found.exception';
+import { AccountNotFoundException } from './exceptions/account-not-found.exception';
 
 describe('AccountsService', () => {
   let service: AccountsService;

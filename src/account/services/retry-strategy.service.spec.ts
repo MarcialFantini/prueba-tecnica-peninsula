@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { RetryStrategy } from './retry-strategy.service';
-import { ConcurrencyException } from '../exeptions/concurrency.exception';
-import { AccountNotFoundException } from '../exeptions/account-not-found.exception';
+import { ConcurrencyException } from '../exceptions/concurrency.exception';
+import { AccountNotFoundException } from '../exceptions/account-not-found.exception';
 
 describe('RetryStrategy', () => {
   let service: RetryStrategy;

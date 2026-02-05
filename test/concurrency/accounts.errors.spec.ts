@@ -7,8 +7,8 @@ import {
   Transaction,
   TransactionType,
 } from 'src/account/entities/transaction.entity';
-import { InsufficientFundsException } from 'src/account/exeptions/insufficient-funds.exception';
-import { AccountNotFoundException } from 'src/account/exeptions/account-not-found.exception';
+import { InsufficientFundsException } from 'src/account/exceptions/insufficient-funds.exception';
+import { AccountNotFoundException } from 'src/account/exceptions/account-not-found.exception';
 import { TransactionExecutor } from 'src/account/services/transaction-executor.service';
 import { RetryStrategy } from 'src/account/services/retry-strategy.service';
 import { DataSource } from 'typeorm';
