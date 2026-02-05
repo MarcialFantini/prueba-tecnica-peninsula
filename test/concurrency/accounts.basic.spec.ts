@@ -10,7 +10,6 @@ import {
 import { AccountNotFoundException } from 'src/account/exeptions/account-not-found.exception';
 import { TransactionExecutor } from 'src/account/services/transaction-executor.service';
 import { RetryStrategy } from 'src/account/services/retry-strategy.service';
-import { IdempotencyService } from 'src/account/services/idempotency.service';
 import { DataSource } from 'typeorm';
 
 describe('AccountsService - Basic Functionality', () => {
@@ -35,12 +34,7 @@ describe('AccountsService - Basic Functionality', () => {
         }),
         TypeOrmModule.forFeature([Account, Transaction]),
       ],
-      providers: [
-        AccountsService,
-        TransactionExecutor,
-        RetryStrategy,
-        IdempotencyService,
-      ],
+      providers: [AccountsService, TransactionExecutor, RetryStrategy],
     }).compile();
 
     service = module.get<AccountsService>(AccountsService);

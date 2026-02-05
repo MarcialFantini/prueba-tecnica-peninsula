@@ -9,7 +9,6 @@ import {
 } from 'src/account/entities/transaction.entity';
 import { TransactionExecutor } from 'src/account/services/transaction-executor.service';
 import { RetryStrategy } from 'src/account/services/retry-strategy.service';
-import { IdempotencyService } from 'src/account/services/idempotency.service';
 import { DataSource } from 'typeorm';
 
 describe('AccountsService - Mixed Operations', () => {
@@ -34,12 +33,7 @@ describe('AccountsService - Mixed Operations', () => {
         }),
         TypeOrmModule.forFeature([Account, Transaction]),
       ],
-      providers: [
-        AccountsService,
-        TransactionExecutor,
-        RetryStrategy,
-        IdempotencyService,
-      ],
+      providers: [AccountsService, TransactionExecutor, RetryStrategy],
     }).compile();
 
     service = module.get<AccountsService>(AccountsService);

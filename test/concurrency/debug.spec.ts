@@ -9,7 +9,6 @@ import {
 } from 'src/account/entities/transaction.entity';
 import { TransactionExecutor } from 'src/account/services/transaction-executor.service';
 import { RetryStrategy } from 'src/account/services/retry-strategy.service';
-import { IdempotencyService } from 'src/account/services/idempotency.service';
 import { DataSource } from 'typeorm';
 
 describe('Debug Concurrent Operations', () => {
@@ -34,12 +33,7 @@ describe('Debug Concurrent Operations', () => {
         }),
         TypeOrmModule.forFeature([Account, Transaction]),
       ],
-      providers: [
-        AccountsService,
-        TransactionExecutor,
-        RetryStrategy,
-        IdempotencyService,
-      ],
+      providers: [AccountsService, TransactionExecutor, RetryStrategy],
     }).compile();
 
     service = module.get<AccountsService>(AccountsService);
@@ -94,59 +88,14 @@ describe('Debug Concurrent Operations', () => {
     console.log(`  - Successful promises: ${successes.length}`);
     console.log(`  - Failed promises: ${failures.length}`);
 
+    // Check for transaction history
     const finalBalance = await service.getBalance(accountId);
     console.log(`  - Final balance: ${finalBalance}`);
 
     const transactions = await service.getTransactionHistory(accountId);
     console.log(`  - Actual transactions in DB: ${transactions.length}`);
 
-    // Check for duplicate transaction IDs
-    const txIds = successes.map((r: any) => r.transactionId);
-    const uniqueTxIds = new Set(txIds);
-    console.log(`  - Unique transaction IDs: ${uniqueTxIds.size}`);
-    console.log(`  - Transaction IDs:`, txIds);
-
-    if (uniqueTxIds.size !== txIds.length) {
-      console.log('⚠️  DUPLICATE TRANSACTION IDs DETECTED!');
-      const duplicates = txIds.filter((id, idx) => txIds.indexOf(id) !== idx);
-      console.log('   Duplicates:', [...new Set(duplicates)]);
-    }
-
     // This test is for debugging, so we just log everything
-    expect(true).toBe(true);
-  });
-
-  it('DEBUG: should show idempotency keys being used', async () => {
-    const accountId = 'debug-idempotency';
-    await service.createAccount(accountId, 100);
-
-    console.log('\n🔍 Checking idempotency key generation...');
-
-    const promises = Array(5)
-      .fill(null)
-      .map(async (_, idx) => {
-        const result = await service.updateBalance(accountId, {
-          amount: 10,
-          type: TransactionType.WITHDRAW,
-        });
-
-        const tx = await dataSource
-          .getRepository(Transaction)
-          .findOne({ where: { id: result.transactionId } });
-
-        console.log(`Request ${idx + 1}:`, {
-          transactionId: result.transactionId,
-          idempotencyKey: tx?.idempotencyKey,
-        });
-
-        return result;
-      });
-
-    await Promise.all(promises);
-
-    const transactions = await service.getTransactionHistory(accountId);
-    console.log(`\nTotal transactions: ${transactions.length}`);
-
     expect(true).toBe(true);
   });
 });

@@ -1,4 +1,3 @@
-// src/account/services/retry-strategy.service.ts
 import { Injectable } from '@nestjs/common';
 import { AccountNotFoundException } from '../exeptions/account-not-found.exception';
 import { InsufficientFundsException } from '../exeptions/insufficient-funds.exception';
@@ -17,7 +16,7 @@ export interface RetryCallbacks {
 }
 
 /**
- * Servicio que implementa estrategia de retry con exponential backoff y jitter.
+ * Service that implements retry strategy with exponential backoff and jitter.
  */
 @Injectable()
 export class RetryStrategy {
@@ -43,12 +42,12 @@ export class RetryStrategy {
       } catch (error) {
         lastError = error;
 
-        // Fail-fast: errores que NO deben reintentar
+        // Fail-fast: errors that should NOT be retried
         if (this.isNonRetryableError(error)) {
           throw error;
         }
 
-        // Último intento alcanzado
+        // Max retries reached
         if (attempt === finalConfig.maxRetries - 1) {
           callbacks?.onMaxRetriesExceeded?.(finalConfig.maxRetries);
           throw new ConcurrencyException(
@@ -56,12 +55,12 @@ export class RetryStrategy {
           );
         }
 
-        // Calcular delay con exponential backoff + jitter
+        // Calculate delay with exponential backoff + jitter
         const delay = this.calculateDelay(attempt, finalConfig);
 
         callbacks?.onRetry?.(attempt + 1, delay, error);
 
-        // Esperar antes de reintentar
+        // Wait before retrying
         await this.sleep(delay);
         attempt++;
       }

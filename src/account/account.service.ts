@@ -9,17 +9,9 @@ import { UpdateBalanceDto } from './dto/update-balance.dto';
 import { UpdateBalanceResponseDto } from './dto/update-balance-response.dto';
 import { AccountNotFoundException } from './exeptions/account-not-found.exception';
 import { TransactionExecutor } from './services/transaction-executor.service';
-import { IdempotencyService } from './services/idempotency.service';
 
 /**
- * Servicio principal de cuentas bancarias - REFACTORIZADO
- *
- * Cambios principales vs versión original:
- * 1. Separación de responsabilidades en servicios especializados
- * 2. Mejor organización y mantenibilidad
- * 3. Misma funcionalidad, mejor arquitectura
- *
- * COMPATIBLE con todos los tests existentes - no requiere cambios en los tests.
+ * Service for managing bank accounts.
  */
 @Injectable()
 export class AccountsService {
@@ -31,7 +23,6 @@ export class AccountsService {
     @InjectRepository(Transaction)
     private readonly transactionRepository: Repository<Transaction>,
     private readonly transactionExecutor: TransactionExecutor,
-    private readonly idempotencyService: IdempotencyService,
   ) {}
 
   /**
@@ -77,11 +68,6 @@ export class AccountsService {
 
   /**
    * Actualiza el balance de una cuenta (depósito o retiro).
-   *
-   * Esta implementación refactorizada:
-   * - Mantiene la misma API pública (compatible con tests existentes)
-   * - Delega lógica compleja a servicios especializados
-   * - Mejora la mantenibilidad sin cambiar el comportamiento
    */
   async updateBalance(
     accountId: string,
@@ -91,27 +77,7 @@ export class AccountsService {
       `Update balance request for account ${accountId}: ${dto.type} ${dto.amount}`,
     );
 
-    // Generar idempotency key si no se proporciona
-    const idempotencyKey = this.idempotencyService.ensureKey(
-      dto.idempotencyKey,
-    );
-
-    // Verificar si ya existe una transacción con esta idempotency key
-    const cachedResult =
-      await this.idempotencyService.getCachedResult(idempotencyKey);
-    if (cachedResult) {
-      this.logger.log(
-        `Returning cached result for idempotency key: ${idempotencyKey}`,
-      );
-      return cachedResult;
-    }
-
-    // Ejecutar la transacción con retry automático
-    return this.transactionExecutor.executeWithRetry(
-      accountId,
-      dto,
-      idempotencyKey,
-    );
+    return this.transactionExecutor.executeWithRetry(accountId, dto);
   }
 
   /**

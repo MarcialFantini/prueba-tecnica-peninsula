@@ -1,4 +1,3 @@
-// src/accounts/accounts.controller.ts
 import {
   Controller,
   Post,

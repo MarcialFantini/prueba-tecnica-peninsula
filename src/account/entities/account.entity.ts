@@ -19,7 +19,7 @@ export class Account {
   @Column('decimal', { precision: 18, scale: 2, default: 0 })
   balance: number;
 
-  @VersionColumn() // ¡TypeORM maneja optimistic locking automáticamente!
+  @VersionColumn() // Optimistic locking version
   version: number;
 
   @CreateDateColumn({ name: 'created_at' })

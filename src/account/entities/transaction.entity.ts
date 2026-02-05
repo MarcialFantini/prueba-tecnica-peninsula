@@ -15,7 +15,6 @@ export enum TransactionType {
 }
 
 @Entity('transactions')
-@Index(['accountId', 'idempotencyKey'], { unique: true })
 export class Transaction {
   @PrimaryGeneratedColumn()
   id: number;
@@ -40,9 +39,6 @@ export class Transaction {
 
   @Column()
   version: number;
-
-  @Column({ name: 'idempotency_key', length: 50, unique: true })
-  idempotencyKey: string;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

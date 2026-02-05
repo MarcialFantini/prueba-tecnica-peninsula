@@ -1,4 +1,3 @@
-// src/account/services/transaction-executor.service.ts
 import { Injectable, Logger } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 
@@ -11,9 +10,8 @@ import { InsufficientFundsException } from '../exeptions/insufficient-funds.exce
 import { RetryStrategy } from './retry-strategy.service';
 
 /**
- * Servicio responsable de ejecutar transacciones bancarias.
- *
- * Implementa optimistic locking con retry automático.
+ * Service responsible for executing bank transactions.
+ * Implements optimistic locking with automatic retries.
  */
 @Injectable()
 export class TransactionExecutor {
@@ -30,7 +28,6 @@ export class TransactionExecutor {
   async executeWithRetry(
     accountId: string,
     dto: UpdateBalanceDto,
-    idempotencyKey: string,
   ): Promise<UpdateBalanceResponseDto> {
     const normalizedAmount = this.normalizeAmount(dto.amount, dto.type);
     let attempt = 0;
@@ -42,7 +39,6 @@ export class TransactionExecutor {
           accountId,
           normalizedAmount,
           dto.type,
-          idempotencyKey,
           currentAttempt,
         );
       },
@@ -77,18 +73,10 @@ export class TransactionExecutor {
     accountId: string,
     amount: number,
     type: TransactionType,
-    idempotencyKey: string,
     attemptNumber: number,
   ): Promise<UpdateBalanceResponseDto> {
     return this.dataSource.transaction(async (manager) => {
-      // 1. Verificar idempotencia (indispensable antes de la query compleja)
-      const existingTx = await manager.findOne(Transaction, {
-        where: { idempotencyKey },
-      });
-      if (existingTx)
-        return this.buildResponseFromTransaction(existingTx, attemptNumber);
-
-      // 2. Obtener versión actual (necesaria para el WHERE del Optimistic Lock)
+      // 1. Get current version for Optimistic Lock
       const currentAccount = await manager.findOne(Account, {
         where: { accountId },
         select: ['version', 'balance'],
@@ -98,12 +86,8 @@ export class TransactionExecutor {
       const currentVersion = currentAccount.version;
       const balanceBefore = Number(currentAccount.balance);
 
-      // 3. LA QUERY MÁGICA: CTE Atómico
-      // Esta query hace TODO en un solo round-trip:
-      // - Valida saldo
-      // - Valida versión (Optimistic Lock)
-      // - Actualiza cuenta
-      // - Inserta registro de transacción
+      // 2. Atomic CTE execution
+      // Performs validation, updates account and inserts transaction in a single round-trip
       const sql = `
         WITH updated_account AS (
           UPDATE accounts
@@ -118,10 +102,10 @@ export class TransactionExecutor {
           RETURNING balance, version
         )
         INSERT INTO transactions (
-          account_id, amount, type, balance_before, balance_after, version, idempotency_key, created_at
+          account_id, amount, type, balance_before, balance_after, version, created_at
         )
         SELECT 
-          $2, $1, $4, $5, balance, version, $6, NOW()
+          $2, $1, $4, $5, balance, version, NOW()
         FROM updated_account
         RETURNING id, balance_after, version;
       `;
@@ -132,20 +116,19 @@ export class TransactionExecutor {
         currentVersion,
         type,
         balanceBefore,
-        idempotencyKey,
       ]);
 
-      // 4. Analizar resultado
+      // 3. Analizar resultado
       if (result.length === 0) {
         // Si falló, investigamos por qué
         if (balanceBefore + amount < 0) {
           throw new InsufficientFundsException('Insufficient funds');
         }
-        // Si había saldo, fue un conflicto de versión
+        // Version conflict detected
         throw new Error('Version conflict - retry required');
       }
 
-      // 5. Construir respuesta exitosa
+      // 4. Construir respuesta exitosa
       return {
         success: true,
         transactionId: result[0].id,
@@ -154,21 +137,5 @@ export class TransactionExecutor {
         wasRetried: attemptNumber > 0,
       };
     });
-  }
-
-  /**
-   * Construye la respuesta a partir de una transacción guardada.
-   */
-  private buildResponseFromTransaction(
-    transaction: Transaction,
-    attemptNumber: number,
-  ): UpdateBalanceResponseDto {
-    return {
-      success: true,
-      transactionId: transaction.id,
-      balanceAfter: Number(transaction.balanceAfter),
-      version: transaction.version,
-      wasRetried: attemptNumber > 0,
-    };
   }
 }

@@ -14,8 +14,4 @@ export class UpdateBalanceDto {
   @IsNumber()
   @IsPositive()
   amount: number;
-
-  @IsOptional()
-  @IsUUID()
-  idempotencyKey?: string;
 }

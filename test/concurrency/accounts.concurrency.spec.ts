@@ -11,7 +11,6 @@ import { InsufficientFundsException } from 'src/account/exeptions/insufficient-f
 import { ConcurrencyException } from 'src/account/exeptions/concurrency.exception';
 import { TransactionExecutor } from 'src/account/services/transaction-executor.service';
 import { RetryStrategy } from 'src/account/services/retry-strategy.service';
-import { IdempotencyService } from 'src/account/services/idempotency.service';
 import { DataSource } from 'typeorm';
 
 describe('AccountsService - Concurrency & Stress', () => {
@@ -36,12 +35,7 @@ describe('AccountsService - Concurrency & Stress', () => {
         }),
         TypeOrmModule.forFeature([Account, Transaction]),
       ],
-      providers: [
-        AccountsService,
-        TransactionExecutor,
-        RetryStrategy,
-        IdempotencyService,
-      ],
+      providers: [AccountsService, TransactionExecutor, RetryStrategy],
     }).compile();
 
     service = module.get<AccountsService>(AccountsService);
