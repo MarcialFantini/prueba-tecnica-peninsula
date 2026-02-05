@@ -2,7 +2,7 @@
 
 Proyecto NestJS optimizado para alta concurrencia con soporte para **Bloqueo Optimista** y **Transacciones Atómicas SQL**.
 
-## 🚀 Cómo Levantar el Proyecto
+## Cómo Levantar el Proyecto
 
 ### 1. Variables de Entorno (`.env`)
 Antes de empezar, asegúrate de tener configurado tu archivo `.env`. Puedes usar `.env.example` como referencia.
@@ -39,21 +39,21 @@ docker compose --profile dev --profile test down
 
 ### 3. Modos de Ejecución
 
-#### 🛠️ Desarrollo (Watch Mode)
+#### Desarrollo (Watch Mode)
 Levanta la app y recarga automáticamente al hacer cambios.
 ```bash
 npm install
 npm run start:dev
 ```
 
-#### 🏗️ Build (Producción)
+#### Build (Producción)
 Compila el código TypeScript a JavaScript optimizado.
 ```bash
 npm run build
 npm run start:prod
 ```
 
-#### 🧪 Testing
+#### Testing
 Este proyecto tiene tests especiales de concurrencia.
 
 **Correr todos los tests:**
@@ -68,13 +68,13 @@ npm run test:concurrency
 
 ---
 
-## 🏗️ Arquitectura de Transacciones
+## Arquitectura de Transacciones
 
 El proyecto implementa dos estrategias de seguridad:
 1.  **Idempotencia:** Evita que una misma petición se ejecute dos veces (clauve `idempotencyKey`).
 2.  **Atomicidad SQL:** Las validaciones de saldo y actualizaciones se hacen en una sola query atómica para evitar " race conditions".
 
-## 🛠️ Herramientas Útiles
+## Herramientas Útiles
 - **pgAdmin:** `http://localhost:5050` (User/Pass en el `.env`)
 - **API Base URL:** `http://localhost:3000`
 - **Docs de Endpoints:** `/accounts`, `/accounts/:id/balance`, etc.

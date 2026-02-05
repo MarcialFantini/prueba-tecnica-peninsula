@@ -1,10 +1,10 @@
-# 📘 Memoria Técnica y Guía de Ejecución
+# Memoria Técnica y Guía de Ejecución
 
 Este documento detalla el razonamiento técnico, las decisiones de arquitectura y las instrucciones para ejecutar y probar la solución entregada para la prueba técnica.
 
 ---
 
-## 🧠 1. Razonamiento Técnico y Decisiones de Diseño
+## 1. Razonamiento Técnico y Decisiones de Diseño
 
 ### 1.1. Enfoque de Concurrencia: Optimistic Locking
 Para resolver el desafío de las transacciones bancarias concurrentes y evitar inconsistencias (*Race Conditions* y *Lost Updates*), se optó por una estrategia de **Control de Concurrencia Optimista (Optimistic Locking)**.
@@ -29,11 +29,11 @@ Se utilizó **NestJS** por su arquitectura modular y sus patrones de diseño inc
 
 ---
 
-## 🏗️ 2. Arquitectura de Servicios y Flujo de Datos
+## 2. Arquitectura de Servicios y Flujo de Datos
 
 El sistema descompone la lógica de negocio en tres capas de responsabilidad, pasando datos tipados (DTOs) para asegurar la integridad de la operación.
 
-### 2.1. 🎻 `AccountService` (Fachada)
+### 2.1. AccountService (Fachada)
 **Responsabilidad**: Punto de entrada principal. Recibe la petición HTTP, valida parámetros básicos y delega la ejecución compleja.
 
 *   **Método Principal**: `updateBalance(accountId: string, dto: UpdateBalanceDto)`
@@ -44,7 +44,7 @@ El sistema descompone la lógica de negocio en tres capas de responsabilidad, pa
     *   **Acción**: Loguea la intención de la operación y llama a `TransactionExecutor`.
     *   **Output**: Retorna `UpdateBalanceResponseDto` (nuevo saldo, transactionId) al controlador.
 
-### 2.2. ⚙️ `TransactionExecutorService` (Core Lógico)
+### 2.2. TransactionExecutorService (Core Lógico)
 **Responsabilidad**: Normalización de datos y ejecución atómica. Garantiza que los retiros se conviertan a valores negativos y los depósitos a positivos antes de tocar la DB.
 
 *   **Método**: `executeWithRetry(accountId, dto)`
@@ -54,7 +54,7 @@ El sistema descompone la lógica de negocio en tres capas de responsabilidad, pa
     *   **Ejecución**: Envuelve la operación en un bloque `RetryStrategy`.
     *   **Atomicidad**: Dentro de la transacción SQL, verifica `(balance + amount) >= 0` usando la versión actual para bloqueo optimista.
 
-### 2.3. 🔄 `RetryStrategyService` (Manejo de Resiliencia)
+### 2.3. RetryStrategyService (Manejo de Resiliencia)
 **Responsabilidad**: Ejecutar una función anónima (la transacción) y reintentarla si falla por concurrencia.
 
 *   **Flujo**:
@@ -63,26 +63,26 @@ El sistema descompone la lógica de negocio en tres capas de responsabilidad, pa
     3.  **Retry**: Vuelve a intentar la operación hasta agotar `maxRetries`.
     4.  **Fail Fast**: Si recibe `InsufficientFundsException` o `AccountNotFoundException`, aborta inmediatamente (no tiene sentido reintentar un error de lógica de negocio).
 
-## 💾 3. Diseño de Base de Datos
+## 3. Diseño de Base de Datos
 
 Se utiliza **PostgreSQL** para garantizar la robustez y concurrencia real del sistema. La infraestructura se gestiona mediante **Docker**.
 
 ### 3.1. Entidades Principales
-### 🏦 Entidad: `Account`
+### Entidad: Account
 | Propiedad | Tipo | Descripción |
 | :--- | :--- | :--- |
 | `id` | UUID | Identificador único. |
 | `balance` | Decimal | Saldo actual. Constraint `CHECK (balance >= 0)` para integridad a nivel de DB. |
 | `version` | Int | Control de concurrencia. |
 
-### 🧾 Entidad: `Transaction`
+### Entidad: Transaction
 Diseñada como un log inmutable de operaciones (Audit Log).
 -   Registra el saldo "antes" (`balanceBefore`) y "después" (`balanceAfter`).
 -   Vincula cada transacción a la versión específica de la cuenta que modificó.
 
 ---
 
-## 🛡️ 4. Manejo de Errores
+## 4. Manejo de Errores
 
 El sistema implementa excepciones de dominio para mapear errores lógicos a respuestas HTTP claras:
 -   `InsufficientFundsException`: Retorna **409 Conflict** (o 400) cuando no hay saldo.
@@ -91,7 +91,7 @@ El sistema implementa excepciones de dominio para mapear errores lógicos a resp
 
 ---
 
-## ✅ 5. Validación y Cobertura de Tests
+## 5. Validación y Cobertura de Tests
 
 Se ha implementado una suite exhaustiva de pruebas para validar tanto la lógica de negocio como la robustez ante concurrencia.
 
@@ -108,7 +108,7 @@ Estas pruebas simulan condiciones de alto tráfico para garantizar la integridad
 
 ---
 
-## 🚀 6. Instrucciones de Ejecución y Entorno
+## 6. Instrucciones de Ejecución y Entorno
 
 ### 6.1. Requisitos del Sistema
 *   Node.js (v18+)
@@ -125,7 +125,7 @@ El proyecto requiere configuraciones clave. Utilice `.env.example` como base par
 
 El sistema distingue entre entornos de **Desarrollo** y **Test** para evitar corrupción de datos.
 
-#### 🛠️ Levantar Entorno de Desarrollo
+#### Levantar Entorno de Desarrollo
 Inicia PostgreSQL y la aplicación en modo watch (recarga automática).
 ```bash
 # 1. Instalar dependencias
@@ -138,30 +138,30 @@ pnpm db:start   # (Alias de: docker-compose up -d postgres)
 pnpm start:dev
 ```
 
-#### 🧪 Ejecutar Pruebas (Automático)
+#### Ejecutar Pruebas (Automático)
 El comando de tests se encarga de levantar la base de datos de pruebas, ejecutar toda la suite y apagarlo al finalizar.
 ```bash
 # Levanta DB Test -> Ejecuta Tests -> Apaga DB Test
 pnpm test
 ```
 
-#### 📦 Generar Ejecutable (Producción)
+#### Generar Ejecutable (Producción)
 Para desplegar la solución optimizada:
 ```bash
 pnpm build
 node dist/main
 ```
 
-#### 🧹 Limpieza
+#### Limpieza
 Para detener y limpiar contenedores:
 ```bash
 pnpm db:stop  # Detiene los contenedores
-pnpm db:reset # ⚠️ Pelirogre: Borra y reinicia datos de desarrollo
+pnpm db:reset # Pelirogre: Borra y reinicia datos de desarrollo
 ```
 
 ---
 
-## 🔌 7. Referencia Rápida de API
+## 7. Referencia Rápida de API
 
 La aplicación expone endpoints REST para la gestión de cuentas.
 

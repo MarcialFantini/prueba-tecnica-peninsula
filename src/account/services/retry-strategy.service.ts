@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { AccountNotFoundException } from '../exeptions/account-not-found.exception';
-import { InsufficientFundsException } from '../exeptions/insufficient-funds.exception';
-import { ConcurrencyException } from '../exeptions/concurrency.exception';
+import { AccountNotFoundException } from '../exceptions/account-not-found.exception';
+import { InsufficientFundsException } from '../exceptions/insufficient-funds.exception';
+import { ConcurrencyException } from '../exceptions/concurrency.exception';
 
 export interface RetryConfig {
   maxRetries?: number;

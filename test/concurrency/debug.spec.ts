@@ -55,7 +55,7 @@ describe('Debug Concurrent Operations', () => {
     const accountId = 'debug-account';
     await service.createAccount(accountId, 100);
 
-    console.log('\n🔍 Starting 10 concurrent $10 withdrawals...');
+    console.log('\nStarting 10 concurrent $10 withdrawals...');
 
     const promises = Array(10)
       .fill(null)
@@ -66,7 +66,7 @@ describe('Debug Concurrent Operations', () => {
             type: TransactionType.WITHDRAW,
           })
           .then((result) => {
-            console.log(`✅ Request ${idx + 1} succeeded:`, {
+            console.log(`Request ${idx + 1} succeeded:`, {
               transactionId: result.transactionId,
               balanceAfter: result.balanceAfter,
               wasRetried: result.wasRetried,
@@ -74,7 +74,7 @@ describe('Debug Concurrent Operations', () => {
             return result;
           })
           .catch((err) => {
-            console.log(`❌ Request ${idx + 1} failed:`, err.message);
+            console.log(`Request ${idx + 1} failed:`, err.message);
             return { error: err };
           }),
       );
@@ -84,7 +84,7 @@ describe('Debug Concurrent Operations', () => {
     const successes = results.filter((r) => !('error' in r));
     const failures = results.filter((r) => 'error' in r);
 
-    console.log(`\n📊 Results:`);
+    console.log(`\nResults:`);
     console.log(`  - Successful promises: ${successes.length}`);
     console.log(`  - Failed promises: ${failures.length}`);
 

@@ -5,8 +5,8 @@ import { Account } from '../entities/account.entity';
 import { Transaction, TransactionType } from '../entities/transaction.entity';
 import { UpdateBalanceDto } from '../dto/update-balance.dto';
 import { UpdateBalanceResponseDto } from '../dto/update-balance-response.dto';
-import { AccountNotFoundException } from '../exeptions/account-not-found.exception';
-import { InsufficientFundsException } from '../exeptions/insufficient-funds.exception';
+import { AccountNotFoundException } from '../exceptions/account-not-found.exception';
+import { InsufficientFundsException } from '../exceptions/insufficient-funds.exception';
 import { RetryStrategy } from './retry-strategy.service';
 
 /**
